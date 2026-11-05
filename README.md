@@ -2,7 +2,7 @@
 
 | Integrante | Responsabilidade | Guia |
 |---|---|---|
-| **Lucas Andrade Chaves RM 573867** | Módulos A (núcleo) e B (persistência) | [Guia detalhado da minha parte](#guia-detalhado-da-minha-parte) |
+| **Lucas Andrade Chaves RM 573867** | Módulos A (núcleo) e B (persistência) | [Guia detalhado da minha parte](#guia-detalhado-da-parte-do-lucas) |
 | **Nicolas — preencher nome completo e RM** | Módulos C (machine learning), E (dashboard e segurança web) e G (assistente LLM) | [Guia detalhado da parte do Nicolas](#guia-detalhado-da-parte-do-nicolas) |
 
 Esta pasta pode ser integrada ao projeto do grupo. O núcleo segue os contratos
