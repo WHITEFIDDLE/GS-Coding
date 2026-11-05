@@ -1,0 +1,11 @@
+flask>=3.0
+scikit-learn>=1.4
+joblib>=1.3
+numpy>=1.26
+requests>=2.31
+
+# Desenvolvimento (testes dos cenários C/E/G)
+pytest>=8.0
+
+# Opcional — usado apenas quando o Módulo B (MongoDB) estiver plugado:
+# pymongo>=4.6

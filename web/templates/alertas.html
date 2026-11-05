@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titulo %}Alertas{% endblock %}
+{% block conteudo %}
+<h1>Alertas priorizados por risco de ML</h1>
+<p class="hint">A ordem segue o score do classificador (Módulo C) por IP — o analista vê primeiro o que mais importa.</p>
+
+<section class="painel">
+    <h2>Registrar alerta manual (teste de XSS)</h2>
+    <form method="post" action="{{ url_for('alertas_novo') }}" class="form-alerta">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <div class="linha-form">
+            <label for="ip">IP</label>
+            <input type="text" id="ip" name="ip" placeholder="ex.: 203.0.113.77" required>
+        </div>
+        <div class="linha-form">
+            <label for="severidade">Severidade</label>
+            <select id="severidade" name="severidade" required>
+                {% for sev in severidades %}
+                <option value="{{ sev }}">{{ sev }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="linha-form">
+            <label for="descricao">Descrição</label>
+            <textarea id="descricao" name="descricao" rows="2" maxlength="500"
+                      placeholder="descrição do alerta — qualquer conteúdo é exibido com escaping HTML"></textarea>
+        </div>
+        <button type="submit" class="btn btn-primario">Registrar alerta</button>
+    </form>
+</section>
+
+<section class="painel">
+    <h2>Alertas ({{ lista_alertas | length }})</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Timestamp</th><th>IP</th><th>Score do IP</th><th>Severidade</th>
+                <th>Regra</th><th>Fonte</th><th>Descrição</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for alerta in lista_alertas %}
+            <tr>
+                <td>{{ alerta.timestamp }}</td>
+                <td><a href="{{ url_for('busca', ip=alerta.ip) }}" class="link-ip">{{ alerta.ip }}</a></td>
+                <td>{{ alerta.score_ip if alerta.score_ip is not none else '—' }}</td>
+                <td><span class="chip sev-{{ alerta.severidade | lower }}">{{ alerta.severidade }}</span></td>
+                <td>{{ alerta.regra_nome }} <span class="mini">({{ alerta.regra_id }})</span></td>
+                <td><span class="chip chip-fonte">{{ alerta.fonte }}</span></td>
+                {# XSS defense: descricao is user/attacker-controlled input; Jinja2 escapes it -> <script> renders as literal text (scenario E1) #}
+                <td class="descricao">{{ alerta.descricao }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

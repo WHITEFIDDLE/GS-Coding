@@ -1,0 +1,56 @@
+{
+  "modelo": "Pipeline(StandardScaler, LogisticRegression)",
+  "features": [
+    "auth_fails",
+    "distinct_blocked_ports",
+    "web_errors",
+    "web_total",
+    "suspicious_urls",
+    "in_blacklist"
+  ],
+  "n_amostras_treino": 607,
+  "n_ips_reais": 7,
+  "validacao_cruzada": {
+    "precision": {
+      "media": 1.0,
+      "desvio": 0.0,
+      "folds": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        1.0
+      ]
+    },
+    "recall": {
+      "media": 0.9967,
+      "desvio": 0.0067,
+      "folds": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.9833
+      ]
+    },
+    "f1": {
+      "media": 0.9983,
+      "desvio": 0.0034,
+      "folds": [
+        1.0,
+        1.0,
+        1.0,
+        1.0,
+        0.9916
+      ]
+    }
+  },
+  "avaliacao_ips_reais": {
+    "acertos": 7,
+    "total": 7
+  },
+  "arquivo_modelo": "ml/modelo.pkl",
+  "hash_sha256": "f37297190bfba7f161ae14bb1c3c6771a9b6cc5d75e7f3bf5782c39252686928",
+  "hash_arquivo": "ml/modelo.sha256",
+  "gerado_em": "2026-11-05T18:06:45.159859+00:00"
+}

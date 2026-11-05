@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+
+# Logs de execução (audit trail local)
+logs/access.log
+
+# Artefatos regeneráveis do ML (modelo + hash + métricas são entregues,
+# mas podem ser regenerados com: python ml/treinar.py)

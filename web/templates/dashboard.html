@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Dashboard{% endblock %}
+{% block conteudo %}
+<h1>Visão geral</h1>
+
+<section class="grade">
+    <div class="card">
+        <h2>Eventos por fonte</h2>
+        <p class="destaque">{{ total_eventos }}</p>
+        <ul class="lista-metrica">
+            {% for fonte, total in resumo_fontes.items() | sort %}
+            <li><span class="chip chip-fonte">{{ fonte }}</span> {{ total }} eventos</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Alertas por severidade</h2>
+        <p class="destaque">{{ total_alertas }}</p>
+        <ul class="lista-metrica">
+            {% for severidade, total in por_severidade.items() %}
+            <li><span class="chip sev-{{ severidade | lower }}">{{ severidade }}</span> {{ total }} alertas</li>
+            {% endfor %}
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Buscar IP</h2>
+        <form method="get" action="{{ url_for('busca') }}" class="form-busca">
+            <input type="text" name="ip" value="{{ consulta_ip }}" placeholder="ex.: 185.220.101.1" required>
+            <button type="submit" class="btn">Analisar</button>
+        </form>
+        <p class="hint">Eventos, alertas, score de ML e explicação da IA para o IP.</p>
+    </div>
+</section>
+
+<section class="painel">
+    <h2>Top 10 IPs suspeitos (ordenado por score de ML)</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>#</th><th>IP</th><th>Score</th><th>Nível</th><th>Rótulo</th>
+                <th>Alertas</th><th>Anomalia (Isolation Forest)</th><th>Detecções do núcleo</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for info in top_ips %}
+            <tr>
+                <td>{{ loop.index }}</td>
+                <td><a href="{{ url_for('busca', ip=info.ip) }}" class="link-ip">{{ info.ip }}</a></td>
+                <td>{{ '%.4f' | format(info.score) }}</td>
+                <td><span class="chip nivel-{{ info.nivel | lower }}">{{ info.nivel }}</span></td>
+                <td>{{ info.rotulo }}</td>
+                <td>{{ info.num_alertas }}</td>
+                <td>
+                    {% if info.anomalia %}
+                    <span class="chip sev-critica">sim ({{ info.score_anomalia }})</span>
+                    {% else %}
+                    <span class="chip">não</span>
+                    {% endif %}
+                </td>
+                <td>{{ info.deteccoes | join(', ') if info.deteccoes else '—' }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endblock %}

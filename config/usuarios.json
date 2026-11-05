@@ -1,0 +1,14 @@
+{
+  "usuarios": {
+    "admin": {
+      "nome": "Operador Administrador",
+      "nivel_acesso": 5,
+      "hash_senha": "pbkdf2_sha256$210000$36b6512a3a23ac81307cfb670c53612d$d04f78392b7592c2adae90f4ada2e184017d0f75de76d0d958dba89f647392c4"
+    },
+    "analista": {
+      "nome": "Analista de Segurança",
+      "nivel_acesso": 3,
+      "hash_senha": "pbkdf2_sha256$210000$84fa6d75cc00a04728285842d37a71dd$1776112324dec668e7131e9a42404dab704dce00dc6bff93bbb2f6c1dec9558b"
+    }
+  }
+}
