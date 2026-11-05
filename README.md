@@ -2,7 +2,7 @@
 
 **Responsabilidade: módulos A (núcleo) e B (persistência).**
 
-Integrante: **Lucas — preencher nome completo e RM antes da entrega acadêmica**.
+Integrante: **Lucas Andrade Chaves RM 573867**.
 
 Esta pasta pode ser integrada ao projeto do grupo. O núcleo segue os contratos
 dos esqueletos publicados pelo professor; a implementação das funções foi feita
@@ -666,62 +666,3 @@ Os segredos ficam no `.env`, carregado por `configuracao.py`. As funções
 `configuracao_mysql` e `configuracao_mongo` devolvem opções de conexão. Importar
 os módulos não inicia servidor ou banco.
 
-## 14. O que os testes demonstram
-
-Os testes puros cobrem parsing, dados originais, regras, severidades, sets,
-datas UTC, hash de identidade, fallback externo e protocolo TCP.
-
-Os testes de integração usam bancos reais para conferir ingestão duplicada,
-filtros, paginação, agregações, índices, CRUD, hash de senha, duplicatas,
-SQL Injection e restrição de nível. Também verificam erros de conexão.
-
-O teste TCP abre dois consoles reais via socket na mesma máquina, publica um
-alerta e confere o recebimento em ambos. Outro teste envia JSON em pedaços,
-demonstrando que o código não depende de um recv por mensagem.
-
-Passar nos testes não garante ausência de defeitos. As evidências confirmam
-esses cenários e ainda precisam ser complementadas pela integração do grupo.
-
-## 15. Roteiro sugerido para sua fala
-
-1. "Minha responsabilidade é núcleo e persistência, módulos A e B."
-2. Mostre uma linha auth e o evento normalizado.
-3. Explique a diferença entre regra de um evento e correlação de vários.
-4. Mostre o `set` das portas e a interseção da blacklist.
-5. Execute a ingestão e mostre as 58 entradas; repita e mostre zero novos.
-6. Execute o resumo do banco e a busca por IP.
-7. Mostre os placeholders `%s`, o UNIQUE de e-mail e a senha em hash.
-8. Abra dois consoles e publique críticos.
-9. Mostre os testes e os contratos entregues aos colegas.
-
-## 16. Perguntas que você deve saber responder
-
-**Por que set nas portas?** Para contar portas diferentes, não quantidade total
-de tentativas para a mesma porta.
-
-**Por que dict por IP?** Para reunir contadores e conjuntos sob uma chave comum.
-
-**Por que o hash SHA-256 não é a senha?** Aqui ele identifica documentos;
-senhas usam scrypt, com salt e custo de computação apropriado.
-
-**O que acontece se o banco cair?** O repositório gera ErroPersistencia; o
-chamador decide a resposta. A CLI apresenta erro e encerra com código não zero.
-
-**E se o TCP cair depois da gravação?** Os registros permanecem no banco e a
-CLI avisa. Não há fila durável de entrega; repetir a publicação é manual.
-
-**O índice garante que toda consulta será instantânea?** Não. Ajuda buscas
-adequadas; o plano e o volume influenciam. Não medimos desempenho de produção.
-
-**Por que onze falhas se o enunciado diz dez?** Porque contamos o arquivo
-original sem adulterá-lo e registramos a divergência.
-
-**O score 15 já é ML?** Não. São três detecções de cinco pontos, calculadas por
-regras. O colega responsável por ML adicionará a saída do modelo.
-
-**Está pronto para produção?** É uma entrega de laboratório dos módulos A/B.
-A plataforma final depende dos outros módulos e de controles adicionais.
-
-**Eu posso dizer que programei tudo sozinho?** Explique com honestidade o uso
-de assistência e mostre que compreende as decisões. O objetivo deste guia é
-permitir que você leia, modifique e defenda o código, não apenas o execute.
