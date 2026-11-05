@@ -943,3 +943,6 @@ analista e não dispara nenhuma ação automática.
   `RepositorioUsuarios.autenticar` já está pronto para a troca.
 - **Geolocalização:** `geo_do_ip` devolve `None`; ainda não chama
   `core/enriquecimento.py`.
+
+## Modulos D e F - Pedro
+API e infraestrutura implementadas. Consulte o [guia de execucao](securaPy_platform/GUIA_PEDRO_MODULOS_D_F.md). Esta entrega atualiza as referencias anteriores a D/F como pendentes.
