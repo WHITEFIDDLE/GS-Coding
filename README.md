@@ -81,7 +81,6 @@ Requisitos: Python 3.10+ (apostila recomenda 3.11+) e Docker Desktop em execuç�
 cd securaPy_platform
 python -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements-dev.txt
-.\.venv\Scripts\python.exe baixar_logs.py
 Copy-Item .env.example .env
 # Edite o .env e escolha as senhas e o token antes de iniciar os bancos.
 ```
@@ -845,8 +844,8 @@ Isolation Forest faz o contrário: aprende **apenas o tráfego normal** (linhas
 | Classe | Uso |
 |---|---|
 | `DataProviderBase` | Contrato: resumo por fonte, alertas por severidade, top IPs, busca por IP e registro de alerta |
-| `InMemoryDataProvider` | Padrão atual: indexa eventos e alertas por IP em dicts (busca O(1)) |
-| `MongoDataProvider` | Ponto de integração com o MongoDB; ainda não é usado pelo dashboard |
+| `InMemoryDataProvider` | Dashboard isolado (`web/dashboard.py`): indexa eventos e alertas por IP em dicts (busca O(1)) |
+| `RepositorioDataProvider` | Plataforma integrada (`wsgi.py`): lê o MongoDB pelo `db/mongo_repo.py` (ver guia do Pedro) |
 
 ## 8. Dashboard e segurança web: web/dashboard.py
 
