@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block titulo %}SecuraPy{% endblock %} · SecuraPy Platform</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <header class="topbar">
+        <div class="brand">
+            <span class="logo">SecuraPy</span>
+            <span class="sub">SIEM Platform · CyberShield</span>
+        </div>
+        {% if session['usuario'] %}
+        <nav>
+            <a href="{{ url_for('dashboard') }}" class="{{ 'ativo' if request.endpoint == 'dashboard' }}">Dashboard</a>
+            <a href="{{ url_for('alertas') }}" class="{{ 'ativo' if request.endpoint == 'alertas' }}">Alertas</a>
+            <a href="{{ url_for('busca') }}" class="{{ 'ativo' if request.endpoint == 'busca' }}">Buscar IP</a>
+            <span class="usuario">{{ session['nome'] }} (nível {{ session['nivel_acesso'] }})</span>
+            <a href="{{ url_for('logout') }}" class="sair">Sair</a>
+        </nav>
+        {% endif %}
+    </header>
+
+    <main class="container">
+        {% with mensagens = get_flashed_messages(with_categories=true) %}
+            {% if mensagens %}
+                {% for categoria, texto in mensagens %}
+                    <div class="flash flash-{{ categoria }}">{{ texto }}</div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block conteudo %}{% endblock %}
+    </main>
+
+    <footer class="rodape">
+        <span>SecuraPy Platform — Módulo E (Dashboard Seguro) · XSS escapado com Jinja2 · Headers de segurança ativos · Acesso auditado (OWASP A09)</span>
+        <span>{{ now().strftime('%d/%m/%Y %H:%M') }}</span>
+    </footer>
+</body>
+</html>

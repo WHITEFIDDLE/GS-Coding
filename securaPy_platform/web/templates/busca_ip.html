@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block titulo %}Busca de IP{% endblock %}
+{% block conteudo %}
+<h1>Busca por IP</h1>
+
+<form method="get" action="{{ url_for('busca') }}" class="form-busca form-busca-grande">
+    <input type="text" name="ip" value="{{ consulta_ip }}" placeholder="ex.: 185.220.101.1" required autofocus>
+    <button type="submit" class="btn btn-primario">Analisar</button>
+</form>
+
+{% if erro %}
+<div class="flash flash-erro">{{ erro }}</div>
+{% endif %}
+
+{% if ip_valido %}
+
+{% if info_ip %}
+<section class="grade">
+    <div class="card">
+        <h2>Score de ML (Módulo C)</h2>
+        <p class="destaque">{{ '%.4f' | format(info_ip.score) }}</p>
+        <p>
+            <span class="chip nivel-{{ info_ip.nivel | lower }}">{{ info_ip.nivel }}</span>
+            <span class="chip">{{ info_ip.rotulo }}</span>
+            {% if info_ip.anomalia %}<span class="chip sev-critica">anomalia (Isolation Forest)</span>{% endif %}
+        </p>
+        <ul class="lista-metrica">
+            <li>auth_fails: {{ info_ip.features.auth_fails | default(0) }}</li>
+            <li>distinct_blocked_ports: {{ info_ip.features.distinct_blocked_ports | default(0) }}</li>
+            <li>web_errors: {{ info_ip.features.web_errors | default(0) }}</li>
+            <li>suspicious_urls: {{ info_ip.features.suspicious_urls | default(0) }}</li>
+            <li>in_blacklist: {{ info_ip.features.in_blacklist | default(0) }}</li>
+        </ul>
+    </div>
+
+    <div class="card">
+        <h2>Explicação do assistente IA (Módulo G)</h2>
+        {% if analise_ia %}
+        <p>
+            <span class="chip class-{{ analise_ia.classificacao | lower | replace('í', 'i') }}">
+                {{ analise_ia.classificacao }}
+            </span>
+            <span class="mini">fonte: {{ analise_ia.fonte }} · modo: {{ analise_ia.modo }}</span>
+        </p>
+        <p class="explicacao-ia">{{ analise_ia.explicacao }}</p>
+        {% else %}
+        <p class="hint">Sem evento/alerta para analisar.</p>
+        {% endif %}
+    </div>
+
+    <div class="card">
+        <h2>Enriquecimento (Módulo A)</h2>
+        {% if geo %}
+        <ul class="lista-metrica">
+            <li>País: {{ geo.country }}</li>
+            <li>Cidade: {{ geo.city }}</li>
+            <li>Org: {{ geo.org }}</li>
+        </ul>
+        {% else %}
+        <p class="hint">Geolocalização indisponível neste escopo — integra o
+        <code>enriquecimento.py</code> do Módulo A/D via <code>DataProvider.geo_do_ip()</code>.</p>
+        {% endif %}
+        <p class="mini">{{ info_ip.num_alertas }} alerta(s) para este IP</p>
+    </div>
+</section>
+{% else %}
+<div class="flash flash-info">Nenhum evento encontrado para {{ ip }}.</div>
+{% endif %}
+
+{% if alertas %}
+<section class="painel">
+    <h2>Alertas do IP ({{ alertas | length }})</h2>
+    <table>
+        <thead><tr><th>Timestamp</th><th>Severidade</th><th>Regra</th><th>Descrição</th></tr></thead>
+        <tbody>
+            {% for alerta in alertas %}
+            <tr>
+                <td>{{ alerta.timestamp }}</td>
+                <td><span class="chip sev-{{ alerta.severidade | lower }}">{{ alerta.severidade }}</span></td>
+                <td>{{ alerta.regra_nome }}</td>
+                <td class="descricao">{{ alerta.descricao }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+{% if eventos %}
+<section class="painel">
+    <h2>Eventos brutos do IP ({{ eventos | length }})</h2>
+    <table>
+        <thead><tr><th>Timestamp</th><th>Fonte</th><th>Tipo</th><th>Detalhes</th></tr></thead>
+        <tbody>
+            {% for evento in eventos %}
+            <tr>
+                <td>{{ evento.timestamp }}</td>
+                <td><span class="chip chip-fonte">{{ evento.fonte }}</span></td>
+                <td>{{ evento.tipo }}</td>
+                <td class="descricao">{{ evento.detalhes }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</section>
+{% endif %}
+
+{% endif %}
+{% endblock %}

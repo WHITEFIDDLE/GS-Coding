@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Erro{% endblock %}
+{% block conteudo %}
+<div class="caixa-erro-generico">
+    <h1>{{ codigo }}</h1>
+    <p>{{ mensagem }}</p>
+    <p class="hint">Se você digitou um endereço manualmente, verifique-o e tente novamente.</p>
+    <a href="{{ url_for('dashboard') }}" class="btn">Voltar ao dashboard</a>
+</div>
+{% endblock %}

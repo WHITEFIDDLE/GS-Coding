@@ -23,6 +23,34 @@ API REST, tokens da API, ML, dashboard e assistente LLM são responsabilidade
 dos outros integrantes. O Compose incluído sobe somente os bancos para apoiar
 o desenvolvimento dos módulos A/B. Ele não substitui o módulo F da GS.
 
+## Integração com a branch `Machine_learning` (módulos C, E e G)
+
+Os módulos de ML, dashboard e assistente foram integrados dentro de
+`securaPy_platform/` e passam a usar o núcleo e a configuração desta branch:
+
+| Pasta | Módulo | Observação |
+|---|---|---|
+| `ml/` | C — treino, métricas, hash SHA-256, score de risco, Isolation Forest | features lidas via `core.coletor.atributos_do_evento` |
+| `web/` | E — dashboard, XSS, headers, login com hash, log de acesso | eventos/alertas vêm de `servicos.analise.analisar_pasta` |
+| `ia/` | G — assistente com validação de rótulos e fallback (modo mock) | sem alteração |
+| `logs/` | dados de teste originais da GS do 1º semestre | 58 linhas (23 + 17 + 18) |
+
+Duplicatas descartadas na integração (mantida a versão desta branch):
+`core/` da raiz, `config/regras.json` e `config/blacklist.txt` (substituído por
+`config/blacklist.json`) e o `requirements.txt` da raiz (dependências somadas ao
+`securaPy_platform/requirements.txt`). O login do dashboard ainda usa
+`config/usuarios.json`; o repositório MySQL (`db/mysql_repo.py`) já oferece
+`autenticar()` para substituí-lo quando a API/integração final for feita.
+
+```powershell
+.\.venv\Scripts\python.exe ml\treinar.py      # C1: treina e imprime precisão/recall/F1
+.\.venv\Scripts\python.exe ml\classificar.py  # C2/C3/C4: score por IP com hash verificado
+.\.venv\Scripts\python.exe web\dashboard.py   # E: http://127.0.0.1:5000
+```
+
+**Pendente:** módulos D (API REST com token) e F (Dockerfile, docker-compose
+com API + MongoDB + MySQL e verificação pelo SDK) ainda não foram entregues.
+
 ## Executar no PowerShell
 
 Requisitos: Python 3.10+ (apostila recomenda 3.11+) e Docker Desktop em execução.

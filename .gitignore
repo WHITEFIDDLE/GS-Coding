@@ -1,4 +1,4 @@
-# Somente o código da Pessoa 1 e um README.
+# Código da plataforma (Pessoas 1, 2 e 3) e um README.
 /*
 !/.gitignore
 !/README.md
@@ -16,6 +16,11 @@
 !/securaPy_platform/testes/
 !/securaPy_platform/sql/
 !/securaPy_platform/config/
+!/securaPy_platform/ml/
+!/securaPy_platform/ia/
+!/securaPy_platform/web/
+!/securaPy_platform/logs/
+/securaPy_platform/logs/access.log
 **/__pycache__/
 **/*.pyc
 **/.env
