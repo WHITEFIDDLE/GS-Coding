@@ -65,6 +65,14 @@ class RepositorioMongo:
     def salvar_alertas(self, alertas):
         return self._salvar(alertas, 'alerta')
 
+    @tratar_erros_mongo
+    def registrar_alerta(self, alerta):
+        """Salva um alerta e devolve o documento gravado, com `id` (usado pela API)."""
+        documento = preparar_documento(alerta, 'alerta', self.fuso_logs)
+        filtro = {'chave_alerta': documento['chave_alerta']}
+        self.banco.alertas.update_one(filtro, {'$setOnInsert': documento}, upsert=True)
+        return para_json(self.banco.alertas.find_one(filtro))
+
     def _filtro(self, fonte=None, tipo=None, ip=None, inicio=None, fim=None, severidade=None):
         filtro = {}
         if fonte is not None:

@@ -8,6 +8,9 @@
 !/securaPy_platform/requirements*.txt
 !/securaPy_platform/pytest.ini
 !/securaPy_platform/compose.bancos.yaml
+!/securaPy_platform/docker-compose.yml
+!/securaPy_platform/Dockerfile
+!/securaPy_platform/.dockerignore
 !/securaPy_platform/.env.example
 !/securaPy_platform/core/
 !/securaPy_platform/alertas/
@@ -19,6 +22,7 @@
 !/securaPy_platform/ml/
 !/securaPy_platform/ia/
 !/securaPy_platform/web/
+!/securaPy_platform/api/
 !/securaPy_platform/logs/
 /securaPy_platform/logs/access.log
 **/__pycache__/

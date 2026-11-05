@@ -4,6 +4,7 @@
 |---|---|---|
 | **Lucas Andrade Chaves RM 573867** | Módulos A (núcleo) e B (persistência) | [Guia detalhado da parte do Lucas](#guia-detalhado-da-parte-do-lucas) |
 | **Nicolas — preencher nome completo e RM** | Módulos C (machine learning), E (dashboard e segurança web) e G (assistente LLM) | [Guia detalhado da parte do Nicolas](#guia-detalhado-da-parte-do-nicolas) |
+| **Pedro — preencher nome completo e RM** | Módulos D (API REST) e F (Docker) e integração final | [Guia detalhado da parte do Pedro](#guia-detalhado-da-parte-do-pedro) |
 
 Esta pasta pode ser integrada ao projeto do grupo. O núcleo segue os contratos
 dos esqueletos publicados pelo professor; a implementação das funções foi feita
@@ -21,8 +22,9 @@ nesta entrega, pois os arquivos de referência ainda contêm `pass`.
 - Testes de núcleo, erros, sockets e integração com bancos reais.
 
 ML, dashboard e assistente LLM estão descritos no guia da parte do Nicolas.
-API REST e tokens da API são responsabilidade de outro integrante. O Compose incluído sobe somente os bancos para apoiar
-o desenvolvimento dos módulos A/B. Ele não substitui o módulo F da GS.
+API REST, tokens, Docker e integração final estão no guia da parte do Pedro.
+O `compose.bancos.yaml` sobe somente os bancos para desenvolver os módulos A/B;
+a plataforma completa sobe pelo `docker-compose.yml` (seção abaixo).
 
 ## Integração com a branch `Machine_learning` (módulos C, E e G)
 
@@ -39,9 +41,9 @@ Os módulos de ML, dashboard e assistente foram integrados dentro de
 Duplicatas descartadas na integração (mantida a versão desta branch):
 `core/` da raiz, `config/regras.json` e `config/blacklist.txt` (substituído por
 `config/blacklist.json`) e o `requirements.txt` da raiz (dependências somadas ao
-`securaPy_platform/requirements.txt`). O login do dashboard ainda usa
-`config/usuarios.json`; o repositório MySQL (`db/mysql_repo.py`) já oferece
-`autenticar()` para substituí-lo quando a API/integração final for feita.
+`securaPy_platform/requirements.txt`). Na plataforma integrada (`wsgi.py`), o
+dashboard lê o MongoDB e autentica operadores no MySQL; `config/usuarios.json`
+fica só para rodar `web/dashboard.py` isolado, sem bancos.
 
 ```powershell
 .\.venv\Scripts\python.exe ml\treinar.py      # C1: treina e imprime precisão/recall/F1
@@ -49,8 +51,27 @@ Duplicatas descartadas na integração (mantida a versão desta branch):
 .\.venv\Scripts\python.exe web\dashboard.py   # E: http://127.0.0.1:5000
 ```
 
-**Pendente:** módulos D (API REST com token) e F (Dockerfile, docker-compose
-com API + MongoDB + MySQL e verificação pelo SDK) ainda não foram entregues.
+## Executar a plataforma completa com Docker
+
+Requisitos: Docker Desktop em execução e Python 3.10+ no host (só para o script
+de verificação). Na pasta `securaPy_platform`:
+
+```powershell
+Copy-Item .env.example .env
+# Edite o .env: troque TODAS as senhas e segredos (veja o comentário no arquivo).
+docker compose up -d --build --wait
+python -m pip install -r requirements-dev.txt
+python verificar_containers.py
+```
+
+| Endereço | O quê |
+|---|---|
+| http://127.0.0.1:5000/ | Dashboard (login com `ADMIN_EMAIL` / `ADMIN_PASSWORD` do `.env`) |
+| http://127.0.0.1:5000/api/... | API REST (módulo D) |
+| 127.0.0.1:9999 | Servidor TCP de alertas (`python main.py cliente-alertas`) |
+
+O fluxo completo, as rotas e o roteiro de demonstração estão no
+[guia da parte do Pedro](#guia-detalhado-da-parte-do-pedro).
 
 ## Executar no PowerShell
 
@@ -162,7 +183,7 @@ o CP1 existente em `GS_Coding` utiliza outros serviços.
 
 ---
 
-## Guia detalhado da minha parte
+## Guia detalhado da parte do Lucas
 
 ## 1. O que você construiu
 
@@ -936,10 +957,309 @@ analista e não dispara nenhuma ação automática.
   pode alterar `modelo.sha256`. O hash detecta alteração acidental ou parcial;
   para resistir a um atacante, o hash precisaria ficar fora do alcance dele ou
   ser assinado.
-- **Dados em memória:** o dashboard usa `InMemoryDataProvider`, então alertas
-  manuais somem ao reiniciar. `MongoDataProvider` ainda não foi ligado ao
-  `db/mongo_repo.py`.
-- **Usuários em JSON:** o login usa `config/usuarios.json`, e não o MySQL. O
-  `RepositorioUsuarios.autenticar` já está pronto para a troca.
-- **Geolocalização:** `geo_do_ip` devolve `None`; ainda não chama
-  `core/enriquecimento.py`.
+- **Modo isolado x plataforma:** rodando `web/dashboard.py` sozinho, os dados
+  ficam em memória (`InMemoryDataProvider`), o login usa `config/usuarios.json`
+  e não há geolocalização. Na plataforma integrada (`wsgi.py`, usado no Docker),
+  o dashboard usa `RepositorioDataProvider` (MongoDB), `MySQLUserStore` (MySQL)
+  e o `core/enriquecimento.py`; veja o guia da parte do Pedro.
+
+---
+
+## Guia detalhado da parte do Pedro
+
+**Responsabilidade: módulos D (API REST) e F (Docker), e integração final.**
+
+## 1. O que foi construído
+
+A parte do Pedro é a porta de entrada da plataforma. A API expõe os dados por
+HTTP, protege as rotas de escrita com token e dispara a análise completa.
+O Docker sobe tudo com um comando. A integração liga os módulos dos três
+integrantes no mesmo processo, sem reescrever nenhum deles.
+
+```mermaid
+flowchart TD
+    CL[Cliente HTTP / analista] -->|/api/...| API[api/app.py: rotas Flask]
+    CL -->|/| WEB[web/dashboard.py: dashboard]
+    API --> AUTH[api/auth.py: JWT Bearer]
+    AUTH -->|e-mail e senha| SQL[(MySQL: usuários)]
+    API --> SRV[servicos/plataforma.py: orquestração]
+    SRV --> A[Módulo A: coletor, regras, detector]
+    SRV --> C[Módulo C: score de ML com hash verificado]
+    SRV --> M[(MongoDB: eventos e alertas)]
+    SRV --> TCP[Servidor TCP de alertas]
+    TCP --> CO1[Console 1]
+    TCP --> CO2[Console 2]
+    API --> G[Módulo G: assistente]
+    API --> GEO[core/enriquecimento.py: ipinfo.io]
+    WEB --> M
+    WEB --> SQL
+```
+
+```mermaid
+flowchart LR
+    subgraph compose[docker compose - rede securapy]
+        api[api: gunicorn wsgi:application - porta 5000]
+        alertas[alertas: main.py servidor-alertas - porta 9999]
+        mongo[(mongo:7)]
+        mysql[(mysql:8.0)]
+    end
+    api --> mongo
+    api --> mysql
+    api --> alertas
+```
+
+## 2. Como executar e roteiro da demonstração
+
+Depois de subir com Docker (seção
+[Executar a plataforma completa com Docker](#executar-a-plataforma-completa-com-docker)),
+o fluxo da seção 4 da GS pode ser demonstrado assim, no PowerShell:
+
+```powershell
+# Terminais 2 e 3: consoles de alertas em tempo real
+python main.py cliente-alertas
+
+# Terminal 1: token, análise, consultas
+$senha = Read-Host "Senha do admin (ADMIN_PASSWORD do .env)"
+$login = @{ email = "admin@securapy.test"; senha = $senha } | ConvertTo-Json
+$token = (Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/api/auth/token -ContentType "application/json" -Body $login).token
+$h = @{ Authorization = "Bearer $token" }
+
+$analise = Invoke-RestMethod -Method Post -Uri http://127.0.0.1:5000/api/analisar -Headers $h -ContentType "application/json" -Body "{}"
+New-Item -ItemType Directory -Force relatorios | Out-Null
+$analise | ConvertTo-Json -Depth 10 | Out-File -Encoding utf8 relatorios\exemplo_plataforma.json   # entregável 4
+
+Invoke-RestMethod "http://127.0.0.1:5000/api/alertas?severidade=critica&pagina=1&tamanho=5"   # D1
+Invoke-RestMethod http://127.0.0.1:5000/api/ip/185.220.101.1                                  # D2
+```
+
+Em seguida, abra http://127.0.0.1:5000/, entre com o administrador e busque o
+IP `185.220.101.1`: aparecem eventos, geolocalização, score de ML e explicação
+do assistente. Os dois consoles recebem os alertas críticos assim que o
+`/api/analisar` termina.
+
+## 3. Autenticação por token: api/auth.py
+
+| Função | Trabalho |
+|---|---|
+| `validar_segredo` | Recusa `API_JWT_SECRET` com menos de 32 caracteres |
+| `gerar_token` | JWT HS256 com `sub`, `email`, `nivel`, `iss`, `iat` e `exp` (30 minutos) |
+| `verificar_token` | Confere assinatura, expiração e emissor; exige as claims obrigatórias |
+| `exigir_token(nivel_minimo)` | Decorador das rotas de escrita: 401 sem token válido, 403 com nível baixo |
+
+O token só é emitido em `POST /api/auth/token`, depois de
+`RepositorioUsuarios.autenticar` (módulo B) validar e-mail e senha no MySQL.
+Senha errada e e-mail inexistente recebem a mesma resposta 401.
+
+```python
+return jwt.decode(token, segredo, algorithms=[ALGORITMO], issuer=EMISSOR,
+                  options={'require': ['sub', 'exp', 'iat', 'iss']})
+```
+
+A lista `algorithms` é fixa. Sem ela, um atacante poderia mandar um token com
+`"alg": "none"` (sem assinatura) e ser aceito. O teste
+`test_token_invalido_ou_alg_none_401` prova que isso dá 401.
+
+Níveis de acesso usados (o nível vem do MySQL, de 1 a 5):
+
+| Operação | Nível mínimo |
+|---|---|
+| Consultas (`GET`) | nenhum (leitura pública na rede local) |
+| `POST /api/alertas` | 2 |
+| `POST /api/analisar` | 3 |
+
+## 4. Rotas: api/app.py
+
+| Método e rota | Token | O que faz | Status |
+|---|---|---|---|
+| `GET /api/saude` | — | Verifica se o MongoDB responde (usado pelo healthcheck) | 200 / 503 |
+| `POST /api/auth/token` | — | Emite o JWT | 200 / 400 / 401 |
+| `GET /api/eventos` | — | Filtros `fonte`, `tipo`, `ip`, `inicio`, `fim`; `pagina`, `tamanho` (1–100) | 200 / 400 |
+| `GET /api/alertas` | — | Filtros `severidade`, `ip`, `fonte`, `inicio`, `fim`; paginação | 200 / 400 |
+| `GET /api/alertas/<id>` | — | Um alerta pelo id | 200 / 400 / 404 |
+| `POST /api/alertas` | nível 2 | Cria alerta manual | 201 / 400 / 401 / 403 |
+| `POST /api/analisar` | nível 3 | `{}`, `{"caminho": "subpasta"}` ou `{"eventos": [...]}`: núcleo + ML + persistência + TCP | 200 / 400 / 401 / 403 |
+| `GET /api/ip/<ip>` | — | Eventos, alertas, geolocalização, score de ML e explicação do assistente | 200 / 400 |
+| `GET /api/resumo` | — | Eventos por fonte, alertas por severidade e top IPs | 200 |
+
+As rotas não têm SQL nem consulta MongoDB: chamam `db/mongo_repo.py`,
+`db/mysql_repo.py` e `servicos/plataforma.py`. O único acréscimo feito no
+módulo B foi `RepositorioMongo.registrar_alerta`, que salva um alerta e devolve
+o documento com `id` (necessário para o 201 do `POST /api/alertas`).
+
+Um lote de eventos usa o mesmo formato dos logs, e cada linha passa pelos
+parsers do núcleo:
+
+```json
+{"eventos": [
+  {"fonte": "web",  "linha": "2025-02-20 12:00:00 GET ip=198.51.100.23 url=/../../etc/passwd status=404"},
+  {"fonte": "auth", "linha": "2025-02-20 12:00:01 FAIL usuario=root ip=198.51.100.23"}
+]}
+```
+
+## 5. Validação e tratamento de erros
+
+| Situação | Resposta |
+|---|---|
+| Parâmetro ou corpo inválido (`ErroEntrada`, `ValueError`) | 400 com mensagem amigável |
+| Corpo que não é objeto JSON | 400 |
+| Campo desconhecido no `POST /api/alertas` (ex.: `"admin": true`) | 400 |
+| Sem token, token inválido, expirado ou de outra chave | 401 com `WWW-Authenticate: Bearer` |
+| Nível de acesso insuficiente | 403 |
+| Rota inexistente / método não permitido | 404 / 405 em JSON |
+| MongoDB ou MySQL fora do ar (`ErroPersistencia`) | 503 genérico |
+| Qualquer outro erro | 500 genérico; o detalhe vai só para o log do servidor |
+| Corpo acima de 2 MB | 413 |
+
+```python
+@app.errorhandler(Exception)
+def _inesperado(_erro):
+    logger.exception('Erro inesperado em %s', request.path)
+    return jsonify({'erro': 'Erro interno do servidor.'}), 500
+```
+
+O teste `test_erro_inesperado_500_sem_traceback` injeta uma exceção com uma
+URI de banco e senha, e confirma que nada disso aparece na resposta.
+
+Toda resposta da API leva `X-Content-Type-Options`, `X-Frame-Options`,
+`Content-Security-Policy`, `Cache-Control: no-store` e `Referrer-Policy`, e cada
+requisição gera uma linha de log (método, rota, status, operador e duração).
+
+## 6. Orquestração: servicos/plataforma.py
+
+| Função / classe | Trabalho |
+|---|---|
+| `Contexto` | Carrega regras, blacklist, padrões e o modelo (com hash verificado) uma vez só |
+| `eventos_do_lote` | Valida o lote `[{fonte, linha}]` com os parsers do núcleo; máximo de 5000 itens |
+| `pasta_de_logs_permitida` | Resolve `caminho` só dentro de `logs/` |
+| `pontuar` | Features + score de ML de qualquer lista de eventos |
+| `analisar_e_persistir` | Fluxo completo: núcleo → ML → MongoDB → TCP |
+| `todos_os_eventos` / `todos_os_alertas` | Percorrem a paginação do repositório (100 por página) |
+| `alerta_mais_grave` | Escolhe o alerta que o assistente vai explicar |
+| `geolocalizador` | Usa o cache do `consultar_ip`, mas refaz consultas que falharam após 60 s |
+
+Ordem do `analisar_e_persistir`: `analisar_eventos` (coletor, regras e detector
+do módulo A) → `pontuar` (módulo C) → `salvar_eventos` / `salvar_alertas`
+(módulo B) → `publicar_criticos` (servidor TCP). O score é calculado antes de
+gravar, para que cada alerta já seja salvo com `score_ml` e `nivel_ml`. Se o
+servidor TCP estiver fora, os dados continuam gravados e a resposta traz
+`aviso_tcp`.
+
+Defesa contra path traversal no `caminho` recebido pela API:
+
+```python
+destino = (contexto.pasta_logs / relativo).resolve()
+if destino != contexto.pasta_logs and contexto.pasta_logs not in destino.parents:
+    raise ValueError('"caminho" deve ficar dentro da pasta logs/')
+```
+
+`resolve()` elimina os `..` antes da comparação. Assim, `../`, `../../` e
+caminhos absolutos como `C:/Windows` são recusados com 400.
+
+## 7. Integração final: wsgi.py
+
+`criar_plataforma` monta tudo em um único processo:
+
+- cria `RepositorioMongo` e `RepositorioUsuarios` (módulo B) a partir do `.env`;
+- carrega o `Contexto` (regras, blacklist e modelo verificado, módulos A e C);
+- cria o assistente (módulo G) e, se `ENRIQUECER_IP=1`, o geolocalizador;
+- monta a API em `/api` e o dashboard em `/` com `DispatcherMiddleware`.
+
+Para o dashboard do Nicolas usar os bancos, foram criados dois adaptadores,
+sem mudar rotas nem templates:
+
+| Classe | Arquivo | Papel |
+|---|---|---|
+| `RepositorioDataProvider` | `web/providers.py` | Dashboard lê o MongoDB via `mongo_repo` e calcula score/anomalia com `servicos/plataforma.py` |
+| `MySQLUserStore` | `web/usuarios.py` | Login do dashboard usa `RepositorioUsuarios.autenticar` (o campo "Login" é o e-mail) |
+
+Assim, o que entra por `POST /api/analisar` ou `POST /api/alertas` aparece no
+dashboard, e um alerta criado no dashboard aparece em `GET /api/alertas`.
+
+Também foi corrigido um problema no `criar_logger_acesso` do dashboard: o
+logger reaproveitava o primeiro arquivo de log, mesmo que outra instância
+pedisse outro caminho.
+
+## 8. Docker: Dockerfile, docker-compose.yml e scripts
+
+`Dockerfile`:
+
+- parte de `python:3.11-slim` e instala o `requirements.txt` antes de copiar o
+  código, para aproveitar o cache das camadas;
+- roda com um usuário sem privilégios (`securapy`), não como root;
+- tem `HEALTHCHECK` que chama `GET /api/saude`;
+- o `.dockerignore` deixa fora `.env`, testes, `.venv` e relatórios.
+
+`docker-compose.yml` (projeto `securapy`, rede `securapy`):
+
+| Serviço | Imagem | Porta no host | Observação |
+|---|---|---|---|
+| `api` | `securapy-api` (build local) | 127.0.0.1:5000 | gunicorn com 2 workers; espera mongo e mysql ficarem saudáveis |
+| `mongo` | `mongo:7` | — (só rede interna) | volume `mongo_dados` |
+| `mysql` | `mysql:8.0` | — (só rede interna) | volume `mysql_dados` |
+| `alertas` | `securapy-api` | 127.0.0.1:9999 | servidor TCP do 1º semestre para os consoles |
+
+As portas são publicadas só em `127.0.0.1`, e os bancos não ficam expostos
+fora da rede do Compose. Os segredos vêm do `.env` com `${VAR:?}`: se faltar
+algum, o Compose para com a mensagem de erro em vez de subir sem senha.
+
+`iniciar_api.py` (comando do contêiner da API):
+
+| Função | Trabalho |
+|---|---|
+| `preparar_bancos` | Tenta até 30 vezes criar tabela e índices; não apaga dados |
+| `criar_admin_inicial` | Cria o administrador (nível 5) com `ADMIN_EMAIL`/`ADMIN_PASSWORD`, se não existir |
+| `main` | Executa as duas etapas e troca o processo pelo gunicorn (`os.execvp`) |
+
+As tentativas repetidas existem porque o MySQL, na primeira inicialização,
+fica "healthy" num servidor temporário antes de criar o usuário da aplicação.
+
+`verificar_containers.py` usa o SDK `docker` (docker-py): lista os contêineres
+do projeto pelo rótulo `com.docker.compose.project`, exige `api`, `mongo` e
+`mysql` em `running` e saudáveis, e chama `GET /api/saude`. Sai com código 0
+quando tudo está certo.
+
+## 9. Cenários da GS
+
+| Cenário | Resultado verificado |
+|---|---|
+| D1 — `GET /api/alertas?severidade=critica&pagina=1&tamanho=5` | Só alertas CRITICA, no máximo 5, com `total` e `pagina` |
+| D2 — `GET /api/ip/185.220.101.1` | Eventos, alertas, geolocalização (DE/Berlin), score 1,00 ALTO e explicação CRÍTICO |
+| D3 — `POST /api/alertas` sem token | 401 |
+| D4 — corpo inválido | 400 com a mensagem do campo |
+| D5 — `GET /api/ip/nao-e-ip` | 400: "IP inválido. Exemplo: 185.220.101.1" |
+| F1 — `docker compose up` | api, mongo, mysql e alertas sobem e se comunicam |
+| F2 — `verificar_containers.py` | Os 3 serviços exigidos em `running` e `healthy` |
+| F3 — API dentro do compose | `GET /api/saude` responde 200 |
+
+## 10. O que os testes demonstram
+
+- `testes/test_api.py` (52 testes, sem bancos): D1–D5; JWT ausente, inválido,
+  expirado, de outra chave e com `alg: none`; 403 por nível; análise de 58
+  eventos sem duplicar na reexecução; lote de eventos; path traversal no
+  `caminho`; falha do TCP; 503 e 500 sem vazamento; headers; XSS gravado pela
+  API e exibido escapado no dashboard integrado; login do dashboard pelo
+  adaptador MySQL.
+- Suíte completa: `pytest -q` → 103 passam (6 pulados);
+  `pytest -q --integracao` com os bancos do `compose.bancos.yaml` → 109 passam.
+- Teste ponta a ponta contra o `docker compose` (feito na integração, com
+  volumes zerados): 35 de 35 verificações dos cenários A1–A4, B1–B4, C2–C4,
+  D1–D5, E1–E4 e G1–G4, mais dois consoles TCP recebendo os alertas críticos.
+
+## 11. Limitações conhecidas
+
+- **Sem limite de tentativas** em `POST /api/auth/token` e no login: um ataque
+  de força bruta só é freado pelo custo do scrypt. Em produção caberia rate
+  limiting.
+- **Token sem revogação:** um JWT vale até expirar (30 min); não há lista de
+  bloqueio nem refresh token.
+- **HTTP sem TLS** e TCP sem TLS: a plataforma escuta só em `127.0.0.1`. Para
+  acesso remoto seria preciso HTTPS (proxy reverso) e canal TCP protegido.
+- **Leitura sem autenticação:** os `GET` são abertos na rede local, como pede a
+  GS (token só nas rotas de escrita).
+- **Análise síncrona:** `POST /api/analisar` processa tudo na requisição; para
+  logs grandes seria melhor uma fila.
+- **Score calculado por requisição** no dashboard e em `/api/ip`, sobre os
+  eventos do MongoDB: rápido para os dados da GS, mas não para milhões de
+  eventos.
+- **Quarto contêiner:** a GS pede três serviços (API, MongoDB e MySQL); o
+  serviço `alertas` é um extra, necessário para a demonstração em tempo real.

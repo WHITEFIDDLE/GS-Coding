@@ -74,8 +74,14 @@ def criar_logger_acesso(caminho_log):
     logger = logging.getLogger("securaPy.acesso")
     logger.setLevel(logging.INFO)
     logger.propagate = False
-    if logger.handlers:            # avoid duplicated handlers across reloads
-        return logger
+    destino = os.path.abspath(caminho_log)
+    # Reuse the handler only when it already writes to the same file; a new
+    # app with another log path (tests, integrated platform) gets its own.
+    for handler in list(logger.handlers):
+        if getattr(handler, "baseFilename", None) == destino:
+            return logger
+        logger.removeHandler(handler)
+        handler.close()
     os.makedirs(os.path.dirname(caminho_log), exist_ok=True)
     handler = logging.FileHandler(caminho_log, encoding="utf-8")
     handler.setFormatter(logging.Formatter("%(asctime)s %(message)s",

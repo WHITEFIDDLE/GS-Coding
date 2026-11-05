@@ -1,0 +1,13 @@
+.env
+.venv/
+venv/
+**/__pycache__/
+**/*.pyc
+.pytest_cache/
+testes/
+relatorios/
+dados/
+logs/access.log
+Dockerfile
+docker-compose.yml
+compose.bancos.yaml

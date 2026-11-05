@@ -132,6 +132,24 @@ class UserStore:
             json.dump({"usuarios": self.usuarios}, f, indent=2, ensure_ascii=False)
 
 
+class MySQLUserStore:
+    """
+    Integração final: o login do dashboard passa a usar a tabela `usuarios`
+    do MySQL (módulo B). O campo "login" do formulário é o e-mail. A
+    autenticação, o hash e a anti-enumeração continuam em db/mysql_repo.py.
+    """
+
+    def __init__(self, repositorio_usuarios):
+        self._repo = repositorio_usuarios
+
+    def autenticar(self, login, senha):
+        usuario = self._repo.autenticar(login, senha)
+        if usuario is None:
+            return None
+        return {"login": usuario["email"], "nome": usuario["nome"],
+                "nivel_acesso": int(usuario["nivel_acesso"])}
+
+
 def _cli_interativo():
     """Interactive user creation (password typed via getpass, not argv)."""
     print("SecuraPy - create operator user")

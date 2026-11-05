@@ -1,0 +1,95 @@
+# Plataforma completa (módulo F): API SecuraPy + MongoDB + MySQL na mesma rede.
+# O serviço "alertas" é o servidor TCP do 1º semestre, para os consoles em tempo real.
+# Uso: copie .env.example para .env, troque os segredos e rode:
+#   docker compose up -d --build --wait
+name: securapy
+
+x-ambiente-app: &ambiente-app
+  MYSQL_HOST: mysql
+  MYSQL_PORT: "3306"
+  MYSQL_DATABASE: ${MYSQL_DATABASE:-securapy_gs}
+  MYSQL_USER: ${MYSQL_USER:-operador}
+  MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Defina MYSQL_PASSWORD no .env}
+  MONGO_URI: mongodb://mongo:27017/
+  MONGO_DATABASE: ${MONGO_DATABASE:-securapy_gs}
+  LOG_TIMEZONE: ${LOG_TIMEZONE:-America/Sao_Paulo}
+  ALERTAS_HOST: alertas
+  ALERTAS_PORT: "9999"
+  ALERTAS_TOKEN: ${ALERTAS_TOKEN:?Defina ALERTAS_TOKEN no .env}
+
+services:
+  api:
+    build: .
+    image: securapy-api:latest
+    environment:
+      <<: *ambiente-app
+      API_JWT_SECRET: ${API_JWT_SECRET:?Defina API_JWT_SECRET no .env}
+      SECRET_KEY: ${SECRET_KEY:?Defina SECRET_KEY no .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-}
+      ENRIQUECER_IP: ${ENRIQUECER_IP:-1}
+      PUBLICAR_ALERTAS: "1"
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    ports:
+      - "127.0.0.1:${API_PORT:-5000}:5000"
+    volumes:
+      - api_dados:/app/dados
+    depends_on:
+      mysql:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+      alertas:
+        condition: service_started
+    networks: [securapy]
+    restart: unless-stopped
+
+  alertas:
+    build: .
+    image: securapy-api:latest
+    command: ["python", "main.py", "servidor-alertas", "--host", "0.0.0.0", "--porta", "9999"]
+    environment:
+      <<: *ambiente-app
+    ports:
+      - "127.0.0.1:9999:9999"
+    healthcheck:
+      disable: true
+    networks: [securapy]
+    restart: unless-stopped
+
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina MYSQL_ROOT_PASSWORD no .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-securapy_gs}
+      MYSQL_USER: ${MYSQL_USER:-operador}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Defina MYSQL_PASSWORD no .env}
+    volumes:
+      - mysql_dados:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+    networks: [securapy]
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    volumes:
+      - mongo_dados:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+    networks: [securapy]
+    restart: unless-stopped
+
+networks:
+  securapy:
+
+volumes:
+  api_dados:
+  mysql_dados:
+  mongo_dados:
