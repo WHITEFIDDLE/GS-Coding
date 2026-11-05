@@ -1,0 +1,32 @@
+# Apoio local aos módulos A/B. A pessoa 2 fará o Compose final com a API.
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?Defina no arquivo .env}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-securapy_gs}
+      MYSQL_USER: ${MYSQL_USER:-operador}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:?Defina no arquivo .env}
+    ports:
+      - "127.0.0.1:${MYSQL_PORT:-13307}:3306"
+    volumes:
+      - mysql_dados:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h localhost --silent"]
+      interval: 5s
+      timeout: 5s
+      retries: 40
+  mongo:
+    image: mongo:7
+    ports:
+      - "127.0.0.1:27019:27017"
+    volumes:
+      - mongo_dados:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+volumes:
+  mysql_dados:
+  mongo_dados:

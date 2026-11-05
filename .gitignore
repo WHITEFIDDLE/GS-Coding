@@ -1,0 +1,23 @@
+# Somente o código da Pessoa 1 e um README.
+/*
+!/.gitignore
+!/README.md
+!/securaPy_platform/
+/securaPy_platform/*
+!/securaPy_platform/*.py
+!/securaPy_platform/requirements*.txt
+!/securaPy_platform/pytest.ini
+!/securaPy_platform/compose.bancos.yaml
+!/securaPy_platform/.env.example
+!/securaPy_platform/core/
+!/securaPy_platform/alertas/
+!/securaPy_platform/db/
+!/securaPy_platform/servicos/
+!/securaPy_platform/testes/
+!/securaPy_platform/sql/
+!/securaPy_platform/config/
+**/__pycache__/
+**/*.pyc
+**/.env
+**/.venv/
+**/.pytest_cache/
